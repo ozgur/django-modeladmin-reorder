@@ -1,4 +1,5 @@
 from copy import deepcopy
+from importlib import import_module
 
 from django.conf import settings
 from django.contrib import admin
@@ -29,7 +30,16 @@ class ModelAdminReorder(MiddlewareMixin):
                 'ADMIN_REORDER config parameter must be tuple or list. '
                 'Got {config}'.format(config=self.config))
 
-        admin_index = admin.site.index(request)
+        admin_site_name = getattr(settings, 'ADMIN_REORDER_SITE', None)
+        admin_site = None
+        if admin_site_name:
+            module_name, site_name = admin_site_name.rsplit('.', 1)
+            module = import_module(module_name)
+            admin_site = getattr(module, site_name)
+        else:
+            admin_site = admin.site
+
+        admin_index = admin_site.index(request)
         try:
             # try to get all installed models
             app_list = admin_index.context_data['app_list']
